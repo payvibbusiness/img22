@@ -54,38 +54,41 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-10">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Documents List */}
         <div className="lg:w-1/2">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
-            <div className="p-6 border-b border-slate-100">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200">
+            <div className="p-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-slate-800">Your Documents</h2>
-                <div className="text-sm text-slate-500">
+                <h2 className="text-2xl font-bold text-slate-800">Your Documents</h2>
+                <div className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
                   {documents.length} document{documents.length !== 1 ? 's' : ''}
                 </div>
               </div>
               
               {/* Search */}
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search documents..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full pl-12 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
                 />
               </div>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
               {filteredDocuments.length === 0 ? (
-                <div className="p-8 text-center">
-                  <FileText className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500">
+                <div className="p-12 text-center">
+                  <FileText className="w-16 h-16 text-slate-300 mx-auto mb-6 drop-shadow-sm" />
+                  <p className="text-lg font-semibold text-slate-500 mb-2">
                     {documents.length === 0 ? 'No documents yet' : 'No documents match your search'}
+                  </p>
+                  <p className="text-sm text-slate-400">
+                    {documents.length === 0 ? 'Upload your first document to get started' : 'Try adjusting your search terms'}
                   </p>
                 </div>
               ) : (
@@ -94,21 +97,21 @@ export const Dashboard: React.FC = () => {
                     <div
                       key={doc.id}
                       onClick={() => setSelectedDocument(doc)}
-                      className={`p-4 cursor-pointer transition-colors duration-200 ${
+                      className={`p-6 cursor-pointer transition-all duration-200 ${
                         selectedDocument?.id === doc.id
-                          ? 'bg-blue-50 border-r-4 border-blue-500'
-                          : 'hover:bg-slate-50'
+                          ? 'bg-gradient-to-r from-indigo-50 to-purple-50 border-r-4 border-indigo-500 shadow-sm'
+                          : 'hover:bg-slate-50 hover:shadow-sm'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-medium text-slate-800 truncate">{doc.title}</h3>
-                          <p className="text-sm text-slate-600 mt-1 line-clamp-2">
+                          <h3 className="font-bold text-slate-800 truncate text-lg">{doc.title}</h3>
+                          <p className="text-sm text-slate-600 mt-2 line-clamp-2 leading-relaxed">
                             {doc.originalText.substring(0, 100)}...
                           </p>
-                          <div className="flex items-center space-x-2 mt-2">
+                          <div className="flex items-center space-x-2 mt-3">
                             <Calendar className="w-4 h-4 text-slate-400" />
-                            <span className="text-xs text-slate-500">
+                            <span className="text-xs font-medium text-slate-500">
                               {formatDate(doc.createdAt)}
                             </span>
                           </div>
@@ -118,7 +121,7 @@ export const Dashboard: React.FC = () => {
                             e.stopPropagation();
                             deleteDocument(doc.id);
                           }}
-                          className="ml-2 p-1 text-slate-400 hover:text-red-600 transition-colors duration-200"
+                          className="ml-3 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -133,47 +136,47 @@ export const Dashboard: React.FC = () => {
 
         {/* Document Viewer */}
         <div className="lg:w-1/2">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 min-h-[500px]">
+          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 min-h-[600px]">
             {selectedDocument ? (
               <>
-                <div className="p-6 border-b border-slate-100">
+                <div className="p-8 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-slate-800">{selectedDocument.title}</h3>
+                    <h3 className="text-xl font-bold text-slate-800">{selectedDocument.title}</h3>
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => copyText(selectedDocument.originalText)}
-                        className="flex items-center space-x-2 px-3 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors duration-200"
+                        className="flex items-center space-x-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200 hover:shadow-sm font-medium"
                       >
                         <Copy className="w-4 h-4" />
                         <span className="text-sm">Copy</span>
                       </button>
-                      <button className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors duration-200">
+                      <button className="flex items-center space-x-2 px-4 py-2.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl transition-all duration-200 hover:shadow-sm font-medium">
                         <Download className="w-4 h-4" />
                         <span className="text-sm">Export</span>
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-500 mt-1">
+                  <p className="text-sm font-medium text-slate-500 mt-2">
                     Created {formatDate(selectedDocument.createdAt)}
                   </p>
                 </div>
 
-                <div className="p-6">
+                <div className="p-8">
                   {selectedDocument.imageUrl && (
                     <div className="mb-6">
-                      <h4 className="text-sm font-medium text-slate-700 mb-2">Original Image</h4>
+                      <h4 className="text-sm font-bold text-slate-700 mb-3">Original Document</h4>
                       <img
                         src={selectedDocument.imageUrl}
                         alt="Original"
-                        className="w-full max-w-md h-auto rounded-lg border border-slate-200"
+                        className="w-full max-w-md h-auto rounded-xl border border-slate-200 shadow-md"
                       />
                     </div>
                   )}
 
                   <div>
-                    <h4 className="text-sm font-medium text-slate-700 mb-2">Extracted Text</h4>
-                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
-                      <div className="whitespace-pre-wrap text-slate-800 leading-relaxed">
+                    <h4 className="text-sm font-bold text-slate-700 mb-3">Extracted Text</h4>
+                    <div className="bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-xl p-6 shadow-inner">
+                      <div className="whitespace-pre-wrap text-slate-800 leading-relaxed font-medium">
                         {selectedDocument.originalText}
                       </div>
                     </div>
@@ -182,9 +185,10 @@ export const Dashboard: React.FC = () => {
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                <Eye className="w-12 h-12 text-slate-300 mb-4" />
-                <h3 className="text-lg font-medium text-slate-700 mb-2">Select a Document</h3>
-                <p className="text-slate-500">Choose a document from the list to view its details</p>
+                <Eye className="w-16 h-16 text-slate-300 mb-6 drop-shadow-sm" />
+                <h3 className="text-xl font-bold text-slate-700 mb-3">Select a Document</h3>
+                <p className="text-slate-500 text-lg">Choose a document from the list to view its details</p>
+                <p className="text-slate-400 text-sm mt-2">All your processed documents appear here</p>
               </div>
             )}
           </div>

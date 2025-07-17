@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, LogOut, Settings, User, CreditCard, Menu, X } from 'lucide-react';
+import { FileText, LogOut, Settings, User, CreditCard, Menu, X, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface HeaderProps {
@@ -25,12 +25,14 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-r from-blue-600 to-teal-600 p-2 rounded-xl">
-              <FileText className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-2.5 rounded-xl shadow-lg">
+              <FileText className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-800">HandScript AI</h1>
-              <p className="text-sm text-slate-600 hidden sm:block">Professional handwriting conversion</p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                HandScript AI
+              </h1>
+              <p className="text-sm text-slate-500 hidden sm:block font-medium">Professional OCR Solutions</p>
             </div>
           </div>
 
@@ -39,20 +41,20 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
             <nav className="flex items-center space-x-1">
               <button
                 onClick={() => onViewChange('scanner')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                   currentView === 'scanner'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                 }`}
               >
                 Scanner
               </button>
               <button
                 onClick={() => onViewChange('dashboard')}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                   currentView === 'dashboard'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                 }`}
               >
                 Dashboard
@@ -60,10 +62,10 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               {user?.isAdmin && (
                 <button
                   onClick={() => onViewChange('settings')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                     currentView === 'settings'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
                   Admin Settings
@@ -74,14 +76,18 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
             {/* Desktop User Info */}
             <div className="flex items-center space-x-3">
               <div className="text-right">
-                <p className="text-sm font-medium text-slate-800">{user?.name}</p>
+                <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
                 <div className="flex items-center space-x-2">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                     user?.subscription === 'premium'
-                      ? 'bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800'
-                      : 'bg-slate-100 text-slate-700'
+                      ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200'
+                      : 'bg-slate-100 text-slate-700 border border-slate-200'
                   }`}>
-                    {user?.subscription === 'premium' ? '✨ Premium' : 'Free'}
+                    {user?.subscription === 'premium' ? (
+                      <><Zap className="w-3 h-3 mr-1" />Premium</>
+                    ) : (
+                      'Free'
+                    )}
                   </span>
                   <span className="text-xs text-slate-500">
                     {user?.scansUsed}/{user?.isAdmin || user?.maxScans === Infinity ? '∞' : user?.maxScans} scans
@@ -92,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               {user?.subscription === 'free' && (
                 <button
                   onClick={() => onViewChange('upgrade')}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-4 py-2 rounded-lg font-medium transition-all duration-200 hover:from-yellow-600 hover:to-orange-600 flex items-center space-x-2"
+                  className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg flex items-center space-x-2 shadow-sm"
                 >
                   <CreditCard className="w-4 h-4" />
                   <span>Upgrade</span>
@@ -101,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
 
               <button
                 onClick={logout}
-                className="bg-slate-100 text-slate-700 p-2 rounded-lg transition-all duration-200 hover:bg-slate-200"
+                className="bg-slate-100 text-slate-700 p-2.5 rounded-lg transition-all duration-200 hover:bg-slate-200 hover:shadow-sm"
               >
                 <LogOut className="w-5 h-5" />
               </button>
@@ -113,7 +119,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
             {user?.subscription === 'free' && (
               <button
                 onClick={() => handleNavClick('upgrade')}
-                className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-2 rounded-lg font-medium transition-all duration-200 hover:from-yellow-600 hover:to-orange-600 flex items-center space-x-1"
+                className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-2 rounded-lg font-semibold transition-all duration-200 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg flex items-center space-x-1 shadow-sm"
               >
                 <CreditCard className="w-4 h-4" />
                 <span className="text-sm">Pro</span>
@@ -121,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
             )}
             <button
               onClick={toggleMobileMenu}
-              className="bg-slate-100 text-slate-700 p-2 rounded-lg transition-all duration-200 hover:bg-slate-200"
+              className="bg-slate-100 text-slate-700 p-2.5 rounded-lg transition-all duration-200 hover:bg-slate-200 hover:shadow-sm"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -136,16 +142,20 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               <div className="bg-slate-50 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-slate-800">{user?.name}</p>
-                    <p className="text-sm text-slate-600">{user?.email}</p>
+                    <p className="font-semibold text-slate-800">{user?.name}</p>
+                    <p className="text-sm text-slate-500">{user?.email}</p>
                   </div>
                   <div className="text-right">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       user?.subscription === 'premium'
-                        ? 'bg-gradient-to-r from-yellow-100 to-orange-100 text-orange-800'
-                        : 'bg-slate-100 text-slate-700'
+                        ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200'
+                        : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}>
-                      {user?.subscription === 'premium' ? '✨ Premium' : 'Free'}
+                      {user?.subscription === 'premium' ? (
+                        <><Zap className="w-3 h-3 mr-1" />Premium</>
+                      ) : (
+                        'Free'
+                      )}
                     </span>
                     <p className="text-xs text-slate-500 mt-1">
                       {user?.scansUsed}/{user?.isAdmin || user?.maxScans === Infinity ? '∞' : user?.maxScans} scans
@@ -159,8 +169,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
                 onClick={() => handleNavClick('scanner')}
                 className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
                   currentView === 'scanner'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                 }`}
               >
                 Scanner
@@ -169,8 +179,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
                 onClick={() => handleNavClick('dashboard')}
                 className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
                   currentView === 'dashboard'
-                    ? 'bg-blue-100 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                 }`}
               >
                 Dashboard
@@ -180,8 +190,8 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
                   onClick={() => handleNavClick('settings')}
                   className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
                     currentView === 'settings'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-slate-600 hover:bg-slate-100'
+                      ? 'bg-indigo-100 text-indigo-700 shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'
                   }`}
                 >
                   Admin Settings
