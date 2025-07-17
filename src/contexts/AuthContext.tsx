@@ -75,22 +75,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             updated_at: new Date().toISOString()
           });
         }
-          setProfile(userProfile);
-        } catch (error) {
-          console.error('Error fetching user profile:', error);
-          // Set a minimal profile to prevent infinite loading
-          setProfile({
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || null,
-            subscription_type: 'free',
-            scans_used: 0,
-            max_scans: 1,
-            is_admin: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-        }
       }
       
       setIsLoading(false);
@@ -104,8 +88,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          const userProfile = await getUserProfile(session.user.id);
-          setProfile(userProfile);
+          try {
+            const userProfile = await getUserProfile(session.user.id);
+            setProfile(userProfile);
+          } catch (error) {
+            console.error('Error fetching user profile:', error);
+            // Set a minimal profile to prevent infinite loading
+            setProfile({
+              id: session.user.id,
+              email: session.user.email || '',
+              full_name: session.user.user_metadata?.full_name || null,
+              subscription_type: 'free',
+              scans_used: 0,
+              max_scans: 1,
+              is_admin: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          }
         } else {
           setProfile(null);
         }
