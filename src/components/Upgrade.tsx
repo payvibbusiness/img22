@@ -79,8 +79,6 @@ export const Upgrade: React.FC<UpgradeProps> = ({ onViewChange }) => {
               <Sparkles className="w-4 h-4" />
               <span>Most Popular</span>
             </span>
-              Most Popular
-            </span>
           </div>
           
           <div className="text-center mb-8">
