@@ -1,11 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User } from '../types';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase, getUserProfile, UserProfile, signIn, signOut, signUp } from '../lib/supabase';
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  user: SupabaseUser | null;
+  profile: UserProfile | null;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (email: string, password: string, fullName: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
   isLoading: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,45 +23,101 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Simulate checking for existing session
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  const refreshProfile = async () => {
+    if (user) {
+      const userProfile = await getUserProfile(user.id);
+      setProfile(userProfile);
     }
-    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        const userProfile = await getUserProfile(session.user.id);
+        setProfile(userProfile);
+      }
+      
+      setIsLoading(false);
+    };
+
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const userProfile = await getUserProfile(session.user.id);
+          setProfile(userProfile);
+        } else {
+          setProfile(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock user data
-    const mockUser: User = {
-      id: '1',
-      email,
-      name: email.split('@')[0],
-      subscription: email.includes('premium') ? 'premium' : 'free',
-      scansUsed: email.includes('premium') ? 5 : 0,
-      maxScans: email === 'admin@handscript.ai' ? Infinity : (email.includes('premium') ? 1000 : 1),
-      isAdmin: email === 'admin@handscript.ai',
-      createdAt: new Date().toISOString(),
-    };
-    
-    setUser(mockUser);
-    localStorage.setItem('user', JSON.stringify(mockUser));
+    try {
+      const { data, error } = await signIn(email, password);
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      if (data.user) {
+        const userProfile = await getUserProfile(data.user.id);
+        setProfile(userProfile);
+      }
+      
+      return {};
+    } catch (error) {
+      return { error: 'An unexpected error occurred' };
+    }
   };
 
-  const logout = () => {
+  const register = async (email: string, password: string, fullName: string) => {
+    try {
+      const { data, error } = await signUp(email, password, fullName);
+      
+      if (error) {
+        return { error: error.message };
+      }
+      
+      return {};
+    } catch (error) {
+      return { error: 'An unexpected error occurred' };
+    }
+  };
+
+  const logout = async () => {
+    await signOut();
     setUser(null);
-    localStorage.removeItem('user');
+    setProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      login, 
+      register, 
+      logout, 
+      isLoading, 
+      refreshProfile 
+    }}>
       {children}
     </AuthContext.Provider>
   );

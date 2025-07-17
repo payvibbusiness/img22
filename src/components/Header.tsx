@@ -8,7 +8,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -17,7 +17,12 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
 
   const handleNavClick = (view: string) => {
     onViewChange(view);
-    setIsMobileMenuOpen(false); // Close mobile menu after navigation
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    setIsMobileMenuOpen(false);
   };
 
   return (
@@ -59,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               >
                 Dashboard
               </button>
-              {user?.isAdmin && (
+              {profile?.is_admin && (
                 <button
                   onClick={() => onViewChange('settings')}
                   className={`px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
@@ -76,26 +81,26 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
             {/* Desktop User Info */}
             <div className="flex items-center space-x-3">
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-800">{user?.name}</p>
+                <p className="text-sm font-semibold text-slate-800">{profile?.full_name || profile?.email}</p>
                 <div className="flex items-center space-x-2">
                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    user?.subscription === 'premium'
+                    profile?.subscription_type === 'premium'
                       ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200'
                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                   }`}>
-                    {user?.subscription === 'premium' ? (
+                    {profile?.subscription_type === 'premium' ? (
                       <><Zap className="w-3 h-3 mr-1" />Premium</>
                     ) : (
                       'Free'
                     )}
                   </span>
                   <span className="text-xs text-slate-500">
-                    {user?.scansUsed}/{user?.isAdmin || user?.maxScans === Infinity ? '∞' : user?.maxScans} scans
+                    {profile?.scans_used}/{profile?.is_admin ? '∞' : profile?.max_scans} scans
                   </span>
                 </div>
               </div>
 
-              {user?.subscription === 'free' && (
+              {profile?.subscription_type === 'free' && !profile?.is_admin && (
                 <button
                   onClick={() => onViewChange('upgrade')}
                   className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg flex items-center space-x-2 shadow-sm"
@@ -106,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               )}
 
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="bg-slate-100 text-slate-700 p-2.5 rounded-lg transition-all duration-200 hover:bg-slate-200 hover:shadow-sm"
               >
                 <LogOut className="w-5 h-5" />
@@ -116,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-2">
-            {user?.subscription === 'free' && (
+            {profile?.subscription_type === 'free' && !profile?.is_admin && (
               <button
                 onClick={() => handleNavClick('upgrade')}
                 className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-2 rounded-lg font-semibold transition-all duration-200 hover:from-amber-600 hover:to-orange-600 hover:shadow-lg flex items-center space-x-1 shadow-sm"
@@ -142,23 +147,23 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               <div className="bg-slate-50 rounded-lg p-4 mb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-semibold text-slate-800">{user?.name}</p>
-                    <p className="text-sm text-slate-500">{user?.email}</p>
+                    <p className="font-semibold text-slate-800">{profile?.full_name || profile?.email}</p>
+                    <p className="text-sm text-slate-500">{profile?.email}</p>
                   </div>
                   <div className="text-right">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      user?.subscription === 'premium'
+                      profile?.subscription_type === 'premium'
                         ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-800 border border-amber-200'
                         : 'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}>
-                      {user?.subscription === 'premium' ? (
+                      {profile?.subscription_type === 'premium' ? (
                         <><Zap className="w-3 h-3 mr-1" />Premium</>
                       ) : (
                         'Free'
                       )}
                     </span>
                     <p className="text-xs text-slate-500 mt-1">
-                      {user?.scansUsed}/{user?.isAdmin || user?.maxScans === Infinity ? '∞' : user?.maxScans} scans
+                      {profile?.scans_used}/{profile?.is_admin ? '∞' : profile?.max_scans} scans
                     </p>
                   </div>
                 </div>
@@ -185,7 +190,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
               >
                 Dashboard
               </button>
-              {user?.isAdmin && (
+              {profile?.is_admin && (
                 <button
                   onClick={() => handleNavClick('settings')}
                   className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
@@ -200,10 +205,7 @@ export const Header: React.FC<HeaderProps> = ({ currentView, onViewChange }) => 
 
               {/* Mobile Logout */}
               <button
-                onClick={() => {
-                  logout();
-                  setIsMobileMenuOpen(false);
-                }}
+                onClick={handleLogout}
                 className="w-full text-left px-4 py-3 rounded-lg font-medium text-red-600 hover:bg-red-50 transition-all duration-200 flex items-center space-x-2"
               >
                 <LogOut className="w-5 h-5" />

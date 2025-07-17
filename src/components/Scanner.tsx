@@ -1,27 +1,39 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, Copy, CheckCircle, AlertCircle, Image as ImageIcon, Loader2, Lock, Sparkles, Clock } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { ConversionResult, Document } from '../types';
+import { getActiveGeminiKey, canUserScan, incrementScanCount, createDocument, logScan } from '../lib/supabase';
 
 interface ScannerProps {
   onViewChange: (view: string) => void;
 }
 
+interface ConversionResult {
+  text: string;
+  confidence?: number;
+}
+
 export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
-  const { user } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isConverting, setIsConverting] = useState(false);
   const [result, setResult] = useState<ConversionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [canScan, setCanScan] = useState<boolean | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const canScan = user && user.scansUsed < user.maxScans;
-  const isAtLimit = user && user.scansUsed >= user.maxScans && user.subscription === 'free' && !user.isAdmin;
-  
-  // Ensure admin users can always scan
-  const canActuallyScan = user && (user.isAdmin || user.scansUsed < user.maxScans);
+  // Check scan permissions on component mount
+  React.useEffect(() => {
+    const checkScanPermissions = async () => {
+      if (user) {
+        const canUserPerformScan = await canUserScan(user.id);
+        setCanScan(canUserPerformScan);
+      }
+    };
+    
+    checkScanPermissions();
+  }, [user, profile]);
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -62,27 +74,35 @@ export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
   };
 
   const convertHandwriting = async () => {
-    if (!selectedFile || !canActuallyScan) {
+    if (!selectedFile || !user || !canScan) {
       setError('Unable to process scan');
       return;
     }
 
-    // Check if admin has configured the API key
-    const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
-    if (!appSettings.geminiApiKey) {
-      setError('Service temporarily unavailable. Please contact support.');
-      return;
-    }
-
+    const startTime = Date.now();
     setIsConverting(true);
     setError(null);
 
     try {
+      // Get active Gemini API key
+      const apiKey = await getActiveGeminiKey();
+      if (!apiKey) {
+        setError('Service temporarily unavailable. Please contact support.');
+        await logScan({
+          user_id: user.id,
+          document_id: null,
+          success: false,
+          error_message: 'No active API key found',
+          processing_time: Date.now() - startTime
+        });
+        return;
+      }
+
       // Convert image to base64
       const base64Image = await convertToBase64(selectedFile);
       
       // Make request to Gemini API
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${appSettings.geminiApiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,28 +149,48 @@ export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
 
       setResult({ text: extractedText });
 
-      // Save to user's documents (mock)
-      const newDocument: Document = {
-        id: Date.now().toString(),
-        userId: user!.id,
+      // Create document in database
+      const { data: document, error: docError } = await createDocument({
+        user_id: user.id,
         title: selectedFile.name,
-        originalText: extractedText,
-        imageUrl: previewUrl || undefined,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+        original_text: extractedText,
+        image_url: previewUrl || null,
+      });
 
-      // Update user's scan count (mock)
-      const updatedUser = { ...user!, scansUsed: user!.scansUsed + 1 };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
+      if (docError) {
+        console.error('Error saving document:', docError);
+      }
 
-      // Save document (mock)
-      const existingDocs = JSON.parse(localStorage.getItem('documents') || '[]');
-      existingDocs.push(newDocument);
-      localStorage.setItem('documents', JSON.stringify(existingDocs));
+      // Increment scan count
+      const { error: scanError } = await incrementScanCount(user.id);
+      if (scanError) {
+        console.error('Error updating scan count:', scanError);
+      }
+
+      // Log successful scan
+      await logScan({
+        user_id: user.id,
+        document_id: document?.id || null,
+        success: true,
+        error_message: null,
+        processing_time: Date.now() - startTime
+      });
+
+      // Refresh user profile to update scan count
+      await refreshProfile();
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to convert handwriting');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to convert handwriting';
+      setError(errorMessage);
+      
+      // Log failed scan
+      await logScan({
+        user_id: user.id,
+        document_id: null,
+        success: false,
+        error_message: errorMessage,
+        processing_time: Date.now() - startTime
+      });
     } finally {
       setIsConverting(false);
     }
@@ -179,7 +219,8 @@ export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
     }
   };
 
-  if (isAtLimit) {
+  // Show upgrade prompt if user has reached scan limit
+  if (canScan === false && profile?.subscription_type === 'free' && !profile?.is_admin) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-16">
         <div className="bg-gradient-to-br from-white to-slate-50 rounded-2xl shadow-xl border border-slate-200 p-12 text-center">
@@ -196,7 +237,6 @@ export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
           >
             <Sparkles className="w-5 h-5" />
             <span>Upgrade to Premium</span>
-            Upgrade to Premium
           </button>
         </div>
       </div>
@@ -218,7 +258,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
                   <h2 className="text-xl font-bold text-slate-800">Upload Document</h2>
                 </div>
                 <div className="text-sm font-medium text-slate-500 bg-white px-3 py-1 rounded-full border border-slate-200">
-                  {user?.scansUsed}/{user?.maxScans === 1000 ? '∞' : user?.maxScans} scans used
+                  {profile?.scans_used}/{profile?.is_admin ? '∞' : profile?.max_scans} scans used
                 </div>
               </div>
             </div>
@@ -266,7 +306,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onViewChange }) => {
                 <div className="mt-8 space-y-4">
                   <button
                     onClick={convertHandwriting}
-                    disabled={isConverting || !canActuallyScan}
+                    disabled={isConverting || !canScan}
                     className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 px-6 rounded-xl font-semibold transition-all duration-200 hover:from-indigo-700 hover:to-purple-700 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-md"
                   >
                     {isConverting ? (

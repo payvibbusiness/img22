@@ -1,29 +1,7 @@
-export interface User {
-  id: string;
-  email: string;
-  name: string;
-  subscription: 'free' | 'premium';
-  scansUsed: number;
-  maxScans: number;
-  isAdmin: boolean;
-  createdAt: string;
-}
-
-export interface Document {
-  id: string;
-  userId: string;
-  title: string;
-  originalText: string;
-  imageUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+// Re-export types from supabase lib for backward compatibility
+export type { UserProfile as User, Document, ApiKey as AppSettings } from '../lib/supabase';
 
 export interface ConversionResult {
   text: string;
   confidence?: number;
-}
-
-export interface AppSettings {
-  geminiApiKey: string;
 }

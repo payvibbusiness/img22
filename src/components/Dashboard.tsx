@@ -1,37 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, Calendar, Copy, Trash2, Eye, Download } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { Document } from '../types';
+import { getUserDocuments, deleteDocument, Document } from '../lib/supabase';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Load documents from localStorage (mock)
-    const savedDocs = JSON.parse(localStorage.getItem('documents') || '[]');
-    const userDocs = savedDocs.filter((doc: Document) => doc.userId === user?.id);
-    setDocuments(userDocs);
-  }, [user?.id]);
+    const loadDocuments = async () => {
+      if (user) {
+        setIsLoading(true);
+        const userDocs = await getUserDocuments(user.id);
+        setDocuments(userDocs);
+        setIsLoading(false);
+      }
+    };
+
+    loadDocuments();
+  }, [user]);
 
   const filteredDocuments = documents.filter(doc =>
     doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.originalText.toLowerCase().includes(searchTerm.toLowerCase())
+    doc.original_text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const deleteDocument = (docId: string) => {
-    const updatedDocs = documents.filter(doc => doc.id !== docId);
-    setDocuments(updatedDocs);
-    
-    // Update localStorage
-    const allDocs = JSON.parse(localStorage.getItem('documents') || '[]');
-    const filteredAllDocs = allDocs.filter((doc: Document) => doc.id !== docId);
-    localStorage.setItem('documents', JSON.stringify(filteredAllDocs));
-    
-    if (selectedDocument?.id === docId) {
-      setSelectedDocument(null);
+  const handleDeleteDocument = async (docId: string) => {
+    const { error } = await deleteDocument(docId);
+    if (!error) {
+      setDocuments(documents.filter(doc => doc.id !== docId));
+      if (selectedDocument?.id === docId) {
+        setSelectedDocument(null);
+      }
     }
   };
 
@@ -52,6 +55,19 @@ export const Dashboard: React.FC = () => {
       minute: '2-digit'
     });
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-10">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-200 border-t-indigo-600 mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading your documents...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -107,19 +123,19 @@ export const Dashboard: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-slate-800 truncate text-lg">{doc.title}</h3>
                           <p className="text-sm text-slate-600 mt-2 line-clamp-2 leading-relaxed">
-                            {doc.originalText.substring(0, 100)}...
+                            {doc.original_text.substring(0, 100)}...
                           </p>
                           <div className="flex items-center space-x-2 mt-3">
                             <Calendar className="w-4 h-4 text-slate-400" />
                             <span className="text-xs font-medium text-slate-500">
-                              {formatDate(doc.createdAt)}
+                              {formatDate(doc.created_at)}
                             </span>
                           </div>
                         </div>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteDocument(doc.id);
+                            handleDeleteDocument(doc.id);
                           }}
                           className="ml-3 p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                         >
@@ -144,7 +160,7 @@ export const Dashboard: React.FC = () => {
                     <h3 className="text-xl font-bold text-slate-800">{selectedDocument.title}</h3>
                     <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => copyText(selectedDocument.originalText)}
+                        onClick={() => copyText(selectedDocument.original_text)}
                         className="flex items-center space-x-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all duration-200 hover:shadow-sm font-medium"
                       >
                         <Copy className="w-4 h-4" />
@@ -157,16 +173,16 @@ export const Dashboard: React.FC = () => {
                     </div>
                   </div>
                   <p className="text-sm font-medium text-slate-500 mt-2">
-                    Created {formatDate(selectedDocument.createdAt)}
+                    Created {formatDate(selectedDocument.created_at)}
                   </p>
                 </div>
 
                 <div className="p-8">
-                  {selectedDocument.imageUrl && (
+                  {selectedDocument.image_url && (
                     <div className="mb-6">
                       <h4 className="text-sm font-bold text-slate-700 mb-3">Original Document</h4>
                       <img
-                        src={selectedDocument.imageUrl}
+                        src={selectedDocument.image_url}
                         alt="Original"
                         className="w-full max-w-md h-auto rounded-xl border border-slate-200 shadow-md"
                       />
@@ -177,7 +193,7 @@ export const Dashboard: React.FC = () => {
                     <h4 className="text-sm font-bold text-slate-700 mb-3">Extracted Text</h4>
                     <div className="bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-xl p-6 shadow-inner">
                       <div className="whitespace-pre-wrap text-slate-800 leading-relaxed font-medium">
-                        {selectedDocument.originalText}
+                        {selectedDocument.original_text}
                       </div>
                     </div>
                   </div>

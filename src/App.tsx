@@ -8,7 +8,7 @@ import { Settings } from './components/Settings';
 import { Upgrade } from './components/Upgrade';
 
 const AppContent: React.FC = () => {
-  const { user, isLoading } = useAuth();
+  const { user, profile, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState('scanner');
 
   if (isLoading) {
@@ -26,7 +26,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (!user) {
+  if (!user || !profile) {
     return <LoginForm />;
   }
 
@@ -35,7 +35,7 @@ const AppContent: React.FC = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'settings':
-        return user.isAdmin ? <Settings /> : <Scanner onViewChange={setCurrentView} />;
+        return profile.is_admin ? <Settings /> : <Scanner onViewChange={setCurrentView} />;
       case 'upgrade':
         return <Upgrade onViewChange={setCurrentView} />;
       default:

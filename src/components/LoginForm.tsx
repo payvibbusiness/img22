@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Loader2, FileText, Shield, Zap, Users } from 'lucide-react';
+import { Mail, Lock, Loader2, FileText, User, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LoginForm: React.FC = () => {
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const { login, register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,37 +18,35 @@ export const LoginForm: React.FC = () => {
     setError('');
 
     try {
-      await login(email, password);
+      let result;
+      if (isLogin) {
+        result = await login(email, password);
+      } else {
+        if (!fullName.trim()) {
+          setError('Full name is required');
+          setIsLoading(false);
+          return;
+        }
+        result = await register(email, password, fullName);
+      }
+
+      if (result.error) {
+        setError(result.error);
+      }
     } catch (err) {
-      setError('Invalid credentials');
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const demoAccounts = [
-    { 
-      email: 'user@demo.com', 
-      type: 'Free User', 
-      scans: '0/1',
-      icon: Users,
-      color: 'text-slate-600'
-    },
-    { 
-      email: 'premium@demo.com', 
-      type: 'Premium User', 
-      scans: '5/1000',
-      icon: Zap,
-      color: 'text-amber-600'
-    },
-    { 
-      email: 'admin@handscript.ai', 
-      type: 'Admin', 
-      scans: '∞/∞',
-      icon: Shield,
-      color: 'text-indigo-600'
-    },
-  ];
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError('');
+    setEmail('');
+    setPassword('');
+    setFullName('');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center p-6">
@@ -62,9 +63,38 @@ export const LoginForm: React.FC = () => {
           <p className="text-slate-500 text-sm mt-1">Convert handwriting to digital text with AI precision</p>
         </div>
 
-        {/* Login Form */}
+        {/* Auth Form */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-slate-800">
+              {isLogin ? 'Welcome Back' : 'Create Account'}
+            </h2>
+            <p className="text-slate-600 mt-2">
+              {isLogin ? 'Sign in to your account' : 'Join HandScript AI today'}
+            </p>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            {!isLogin && (
+              <div>
+                <label htmlFor="fullName" className="block text-sm font-semibold text-slate-700 mb-3">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full pl-12 pr-4 py-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                    placeholder="Enter your full name"
+                    required={!isLogin}
+                  />
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-sm font-semibold text-slate-700 mb-3">
                 Email Address
@@ -90,15 +120,26 @@ export const LoginForm: React.FC = () => {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
+                  className="w-full pl-12 pr-12 py-4 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 bg-white/50 backdrop-blur-sm"
                   placeholder="Enter your password"
                   required
+                  minLength={6}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
+              {!isLogin && (
+                <p className="text-xs text-slate-500 mt-2">Password must be at least 6 characters long</p>
+              )}
             </div>
 
             {error && (
@@ -115,47 +156,42 @@ export const LoginForm: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Signing in...</span>
+                  <span>{isLogin ? 'Signing in...' : 'Creating account...'}</span>
                 </>
               ) : (
-                <span>Sign In</span>
+                <span>{isLogin ? 'Sign In' : 'Create Account'}</span>
               )}
             </button>
           </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-slate-600">
+              {isLogin ? "Don't have an account?" : "Already have an account?"}
+              <button
+                onClick={toggleMode}
+                className="ml-2 text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
+              >
+                {isLogin ? 'Sign up' : 'Sign in'}
+              </button>
+            </p>
+          </div>
         </div>
 
-        {/* Demo Accounts */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
-          <h3 className="text-lg font-bold text-slate-800 mb-5">Demo Accounts</h3>
-          <div className="space-y-3">
-            {demoAccounts.map((account, index) => (
-              <div
-                key={index}
-                onClick={() => {
-                  setEmail(account.email);
-                  setPassword('demo123');
-                }}
-                className="flex items-center justify-between p-4 bg-white/60 rounded-xl cursor-pointer hover:bg-white/80 transition-all duration-200 hover:shadow-md border border-slate-100"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={`p-2 rounded-lg bg-slate-100 ${account.color}`}>
-                    <account.icon className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-800">{account.type}</p>
-                    <p className="text-sm text-slate-500">{account.email}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-slate-600">Scans: {account.scans}</p>
-                </div>
+        {/* Demo Info */}
+        {isLogin && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 p-6">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Demo Credentials</h3>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
+                <span className="font-medium">Admin Access:</span>
+                <span className="text-slate-600">admin@handscript.ai / admin123</span>
               </div>
-            ))}
+              <p className="text-xs text-slate-500 text-center">
+                Or create a new account to get started
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 mt-5 text-center font-medium">
-            Click any account to auto-fill credentials
-          </p>
-        </div>
+        )}
       </div>
     </div>
   );
